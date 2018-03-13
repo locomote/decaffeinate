@@ -11,13 +11,17 @@
   "scripts": {
     "lint": "tslint --config tslint.json --project tsconfig.json --type-check",
     "lint-fix": "tslint --config tslint.json --project tsconfig.json --type-check --fix",
-    "pretest": "yarn run build",
+    "pretest": "npm run build",
     "test": "mocha 'test/**/*.ts'",
     "prebuild": "rimraf dist && mkdirp dist && npm run lint",
     "build": "script/build",
-    "prepublish": "yarn run build",
+    "do-shrinkwrap": "(npm shrinkwrap --dev) && exit 0",
+    "postinstall": "npm install --ignore-scripts && npm run build",
     "update-website": "ts-node ./script/update-website.ts"
   },
+  "pre-commit": [
+    "do-shrinkwrap"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/decaffeinate/decaffeinate.git"
@@ -56,10 +60,6 @@
   "engines": {
     "node": ">=6"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
   "devDependencies": {
     "@types/babel-core": "^6.7.14",
     "@types/babylon": "^6.16.1",
@@ -75,7 +75,8 @@
     "rimraf": "^2.5.4",
     "ts-node": "^5.0.0",
     "tslint": "^5.5.0",
-    "typescript": "^2.4.1"
+    "typescript": "^2.4.1",
+    "pre-commit": "^1.2.2"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
