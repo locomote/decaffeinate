@@ -4,6 +4,7 @@ import { REMOVE_BABEL_WORKAROUND } from '../../../suggestions';
 import adjustIndent from '../../../utils/adjustIndent';
 import babelConstructorWorkaroundLines from '../../../utils/babelConstructorWorkaroundLines';
 import getBindingCodeForMethod from '../../../utils/getBindingCodeForMethod';
+import { getNameForMethod } from '../../../utils/getBindingCodeForMethod';
 import getInvalidConstructorErrorMessage from '../../../utils/getInvalidConstructorErrorMessage';
 import { PatcherClass } from './../../../patchers/NodePatcher';
 import BlockPatcher from './BlockPatcher';
@@ -53,16 +54,21 @@ export default class ClassBlockPatcher extends BlockPatcher {
         }
 
         const bindMethods = () => {
-          boundMethods.forEach(method => {
-            constructor += `${methodBodyIndent}${getBindingCodeForMethod(method)};\n`;
-          });
+          if (this.shouldCompactMethodsBinding()) {
+            const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
+            constructor += `${methodBodyIndent}this._bindMethods(${boundMethodNames})\n`;
+          } else {
+            boundMethods.forEach(method => {
+              constructor += `${methodBodyIndent}${getBindingCodeForMethod(method)};\n`;
+            });
+          }
         };
 
-        if(!this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
+        if (!this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
         if (isSubclass) {
           constructor += `${methodBodyIndent}super(...args)\n`;
         }
-        if(this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
+        if (this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
 
         constructor += `${methodIndent}}\n\n${methodIndent}`;
         this.prependLeft(insertionPoint, constructor);
@@ -76,6 +82,10 @@ export default class ClassBlockPatcher extends BlockPatcher {
 
   shouldBindMethodsAfterSuperCall(): boolean {
     return !!this.options.bindMethodsAfterSuperCall;
+  }
+
+  shouldCompactMethodsBinding(): boolean {
+    return !!this.options.compactMethodsBinding;
   }
 
   shouldEnableBabelWorkaround(): boolean {
