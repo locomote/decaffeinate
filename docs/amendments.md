@@ -7,7 +7,21 @@
 
 For some reason the original `decaffeinate` converts a static method-generator to a wrong syntax: `*static methodName()` instead of `static *methodName()`.
 
-`--correct-static-generator-methods` option fixes this problem.
+`--correct-static-generator-methods` option fixes this problem:
+  
+```javascript
+class MyClass
+  @m: ->
+    yield doSomething()
+```
+is converted to:
+```javascript
+class MyClass {
+ static *m() {
+    return yield doSomething();
+  }
+}
+```
 
 
 ## Bound instance methods
@@ -16,16 +30,90 @@ For some reason the original `decaffeinate` converts a static method-generator t
 
 The original `decaffeinate` converts Coffeescript "fat arrow" instance [methods to method binding BEFORE `super` call](https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md#javascript-after-decaffeinate). This is incorrect in a ES6 class.
 
-To address this problem `--bind-methods-after-super-call` option has been added.
+`--bind-methods-after-super-call` option fixes this problem:
+
+```javascript
+class Desc extends Base
+  constructor: ->
+    x = get()
+    super(x)
+
+  m: =>
+
+  m2: =>
+```
+is converted to:
+```javascript
+class Desc extends Base {
+  constructor() {
+    const x = get();
+    super(x);                      // super() call before bindings
+    this.m = this.m.bind(this);
+    this.m2 = this.m2.bind(this);
+  }
+
+  m() {}
+
+  m2() {}
+}
+```
+
+When there is no explicit constructor in a Coffee class:
+
+```javascript
+class Desc extends Base
+  m: =>
+
+  m2: =>
+```
+is converted to:
+```javascript
+class Desc extends Base {
+  constructor(...args) {
+    super(...args);               // super() call before bindings
+    this.m = this.m.bind(this);
+    this.m2 = this.m2.bind(this);
+  }
+
+  m() {}
+
+  m2() {}
+}
+```
 
 ### --compact-methods-binding
 
 There is also one more extra option - `--compact-methods-binding`.
 
-The option causes all instance methods binding in a single line: `this._bindMethods('method1', 'method2');`
+The option causes all instance methods binding in a single line:
+
+```javascript
+class Desc extends Base
+  constructor: ->
+    x = get()
+    super(x)
+
+  m: =>
+
+  m2: =>
+```
+is converted to:
+```javascript
+class Desc extends Base {
+  constructor() {
+    const x = get();
+    super(x);
+    this._bindMethods('m', 'm2');  // the cmpact binding
+  }
+
+  m() {}
+
+  m2() {}
+}
+```
 
 Use of this option requres the application to be provided with `Object.prototype._bindMethods` implementated as follows:
-```
+```javascript
 Object.defineProperty(Object.prototype, '_bindMethods', {
   enumerable: false,
   configurable: false,
