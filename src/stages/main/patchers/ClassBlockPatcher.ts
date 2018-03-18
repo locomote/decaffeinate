@@ -54,14 +54,9 @@ export default class ClassBlockPatcher extends BlockPatcher {
         }
 
         const bindMethods = () => {
-          if (this.shouldCompactMethodsBinding()) {
-            const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
-            constructor += `${methodBodyIndent}this._bindMethods(${boundMethodNames})\n`;
-          } else {
-            boundMethods.forEach(method => {
-              constructor += `${methodBodyIndent}${getBindingCodeForMethod(method)};\n`;
-            });
-          }
+          this.getBindingCodeForAllBoundMethods().forEach((methodBindingCode) => {
+            constructor +=  `${methodBodyIndent}${methodBindingCode};\n`;
+          });
         };
 
         if (!this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
@@ -74,6 +69,22 @@ export default class ClassBlockPatcher extends BlockPatcher {
         this.prependLeft(insertionPoint, constructor);
       }
     }
+  }
+
+  getBindingCodeForAllBoundMethods(): Array<string> {
+    const boundMethods = this.boundInstanceMethods();
+    const result: Array<string> = [];
+
+    if (this.shouldCompactMethodsBinding()) {
+      const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
+      result.push(`this._bindMethods(${boundMethodNames})`);
+    } else {
+      boundMethods.forEach(method => {
+        result.push(getBindingCodeForMethod(method));
+      });
+    }
+
+    return result;
   }
 
   shouldAllowInvalidConstructors(): boolean {

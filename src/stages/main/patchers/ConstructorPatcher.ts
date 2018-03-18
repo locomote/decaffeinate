@@ -5,7 +5,6 @@ import { REMOVE_BABEL_WORKAROUND } from '../../../suggestions';
 import babelConstructorWorkaroundLines from '../../../utils/babelConstructorWorkaroundLines';
 import containsDescendant from '../../../utils/containsDescendant';
 import containsSuperCall from '../../../utils/containsSuperCall';
-import getBindingCodeForMethod from '../../../utils/getBindingCodeForMethod';
 import getInvalidConstructorErrorMessage from '../../../utils/getInvalidConstructorErrorMessage';
 import { isFunction } from '../../../utils/types';
 import ClassBlockPatcher from './ClassBlockPatcher';
@@ -115,9 +114,7 @@ export default class ConstructorPatcher extends ObjectBodyMemberPatcher {
 
   getBindings(): Array<string> {
     if (!this._bindings) {
-      let boundMethods = this.getEnclosingClassBlockPatcher().boundInstanceMethods();
-      let bindings = boundMethods.map(getBindingCodeForMethod);
-      this._bindings = bindings;
+      this._bindings = this.getEnclosingClassBlockPatcher().getBindingCodeForAllBoundMethods();
     }
     return this._bindings;
   }
