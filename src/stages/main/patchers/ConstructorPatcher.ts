@@ -28,8 +28,7 @@ export default class ConstructorPatcher extends ObjectBodyMemberPatcher {
     this.checkForConstructorErrors();
 
     if (this.expression.body) {
-      let linesToInsert = this.getLinesToInsert();
-      this.expression.body.insertStatementsAtIndex(linesToInsert, 0);
+      this.expression.body.insertStatementsAtIndex(this.getLinesToInsert(), this.getIndexOfSuperStatement() + 1);
       super.patch(options);
     } else {
       super.patch(options);

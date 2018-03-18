@@ -18,9 +18,9 @@ The original `decaffeinate` converts Coffeescript "fat arrow" instance [methods 
 
 To address this problem `--bind-methods-after-super-call` option has been added.
 
-### --compact-method-binding
+### --compact-methods-binding
 
-There is also one more extra option - `--compact-method-binding`. 
+There is also one more extra option - `--compact-methods-binding`.
 
 The option causes all instance methods binding in a single line: `this._bindMethods('method1', 'method2');`
 

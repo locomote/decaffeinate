@@ -170,7 +170,7 @@ decaffeinate could be improved, feel free to file an issue on the [issues] page.
 [Amended options](./docs/amendments.md):
 * `--bind-methods-after-super-call`: Bind instance methods after `super` constructor call to avoid
   the invalid constructor error (see `--disallow-invalid-constructors`)
-* `--compact-method-binding`: Do instance methods binding using `Object.prototype._bindMethods`.
+* `--compact-methods-binding`: Do instance methods binding using `Object.prototype._bindMethods`.
   If you use this options, you must ensure existence of `Object.prototype._bindMethods` in the application.
 * `--correct-static-generator-methods`: provides a correct syntax on converting a static generator method.
 
