@@ -75,6 +75,10 @@ export default class ClassBlockPatcher extends BlockPatcher {
     const boundMethods = this.boundInstanceMethods();
     const result: Array<string> = [];
 
+    if (!boundMethods.length > 0) {
+      return result;
+    }
+
     if (this.shouldCompactMethodsBinding()) {
       const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
       result.push(`this._bindMethods(${boundMethodNames})`);
