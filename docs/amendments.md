@@ -8,7 +8,7 @@
 For some reason the original `decaffeinate` converts a static method-generator to a wrong syntax: `*static methodName()` instead of `static *methodName()`.
 
 `--correct-static-generator-methods` option fixes this problem:
-  
+
 ```javascript
 class MyClass
   @m: ->
@@ -112,7 +112,7 @@ class Desc extends Base {
 }
 ```
 
-Use of this option requres the application to be provided with `Object.prototype._bindMethods` implementated as follows:
+Use of this option requires the application to be provided with `Object.prototype._bindMethods` implemented as follows:
 ```javascript
 Object.defineProperty(Object.prototype, '_bindMethods', {
   enumerable: false,
