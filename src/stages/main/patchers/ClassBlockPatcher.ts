@@ -28,8 +28,7 @@ export default class ClassBlockPatcher extends BlockPatcher {
     super.patch(options);
 
     if (!this.hasConstructor()) {
-      let boundMethods = this.boundInstanceMethods();
-      if (boundMethods.length > 0) {
+      if (this.boundInstanceMethods().length > 0) {
         let isSubclass = this.getClassPatcher().isSubclass();
         if (isSubclass && !this.shouldAllowInvalidConstructors() && !this.shouldBindMethodsAfterSuperCall()) {
           throw this.error(getInvalidConstructorErrorMessage(
@@ -74,6 +73,10 @@ export default class ClassBlockPatcher extends BlockPatcher {
   getBindingCodeForAllBoundMethods(): Array<string> {
     const boundMethods = this.boundInstanceMethods();
     const result: Array<string> = [];
+
+    if (!(boundMethods.length > 0)) {
+      return result;
+    }
 
     if (this.shouldCompactMethodsBinding()) {
       const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
