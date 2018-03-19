@@ -99,6 +99,10 @@ function parseArguments(args: Array<string>): CLIOptions {
         baseOptions.bindMethodsAfterSuperCall = true;
         break;
 
+      case '--compact-methods-binding':
+        baseOptions.compactMethodsBinding = true;
+        break;
+
       case '--correct-static-generator-methods':
         baseOptions.correctStaticGeneratorMethods = true;
         break;

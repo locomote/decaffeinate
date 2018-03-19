@@ -4,6 +4,7 @@ import { REMOVE_BABEL_WORKAROUND } from '../../../suggestions';
 import adjustIndent from '../../../utils/adjustIndent';
 import babelConstructorWorkaroundLines from '../../../utils/babelConstructorWorkaroundLines';
 import getBindingCodeForMethod from '../../../utils/getBindingCodeForMethod';
+import { getNameForMethod } from '../../../utils/getBindingCodeForMethod';
 import getInvalidConstructorErrorMessage from '../../../utils/getInvalidConstructorErrorMessage';
 import { PatcherClass } from './../../../patchers/NodePatcher';
 import BlockPatcher from './BlockPatcher';
@@ -53,21 +54,37 @@ export default class ClassBlockPatcher extends BlockPatcher {
         }
 
         const bindMethods = () => {
-          boundMethods.forEach(method => {
-            constructor += `${methodBodyIndent}${getBindingCodeForMethod(method)};\n`;
+          this.getBindingCodeForAllBoundMethods().forEach((methodBindingCode) => {
+            constructor +=  `${methodBodyIndent}${methodBindingCode};\n`;
           });
         };
 
-        if(!this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
+        if (!this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
         if (isSubclass) {
           constructor += `${methodBodyIndent}super(...args)\n`;
         }
-        if(this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
+        if (this.shouldBindMethodsAfterSuperCall()) { bindMethods(); }
 
         constructor += `${methodIndent}}\n\n${methodIndent}`;
         this.prependLeft(insertionPoint, constructor);
       }
     }
+  }
+
+  getBindingCodeForAllBoundMethods(): Array<string> {
+    const boundMethods = this.boundInstanceMethods();
+    const result: Array<string> = [];
+
+    if (this.shouldCompactMethodsBinding()) {
+      const boundMethodNames = boundMethods.map((m) => `'${getNameForMethod(m)}'`).join(', ');
+      result.push(`this._bindMethods(${boundMethodNames})`);
+    } else {
+      boundMethods.forEach(method => {
+        result.push(getBindingCodeForMethod(method));
+      });
+    }
+
+    return result;
   }
 
   shouldAllowInvalidConstructors(): boolean {
@@ -76,6 +93,10 @@ export default class ClassBlockPatcher extends BlockPatcher {
 
   shouldBindMethodsAfterSuperCall(): boolean {
     return !!this.options.bindMethodsAfterSuperCall;
+  }
+
+  shouldCompactMethodsBinding(): boolean {
+    return !!this.options.compactMethodsBinding;
   }
 
   shouldEnableBabelWorkaround(): boolean {
