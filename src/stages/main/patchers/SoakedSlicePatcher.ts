@@ -4,6 +4,7 @@
 import { REMOVE_GUARD } from '../../../suggestions';
 import findSoakContainer from '../../../utils/findSoakContainer';
 import SlicePatcher from './SlicePatcher';
+import SoakedMemberAccessOpPatcher from './SoakedMemberAccessOpPatcher';
 
 const GUARD_HELPER =
   `function __guard__(value, transform) {
@@ -12,7 +13,10 @@ const GUARD_HELPER =
 
 export default class SoakedSlicePatcher extends SlicePatcher {
   patchAsExpression(): void {
-    if (this.shouldPatchAsOptionalChaining()) {
+    if (this.shouldPatchAsOptionalChainingViaLodashGet()) {
+      SoakedMemberAccessOpPatcher.prototype.patchAsOptionalChainingViaLodashGet.apply(this);
+      return;
+    } else if (this.shouldPatchAsOptionalChaining()) {
       super.patchAsExpression();
       return;
     }
@@ -55,5 +59,9 @@ export default class SoakedSlicePatcher extends SlicePatcher {
 
   shouldPatchAsOptionalChaining(): boolean {
     return this.options.useOptionalChaining || false;
+  }
+
+  shouldPatchAsOptionalChainingViaLodashGet(): boolean {
+    return this.options.useOptionalChainingViaLodashGet || false;
   }
 }

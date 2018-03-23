@@ -70,6 +70,10 @@ function parseArguments(args: Array<string>): CLIOptions {
         baseOptions.useOptionalChaining = true;
         break;
 
+      case '--use-optional-chaining-via-lodash-get':
+        baseOptions.useOptionalChainingViaLodashGet = true;
+        break;
+
       case '--use-js-modules':
         baseOptions.useJSModules = true;
         break;

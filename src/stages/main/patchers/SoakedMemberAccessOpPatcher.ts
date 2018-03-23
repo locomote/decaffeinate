@@ -14,7 +14,9 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
 
   patchAsExpression(): void {
     if (!this._shouldSkipSoakPatch) {
-      if (this.shouldPatchAsOptionalChaining()) {
+      if (this.shouldPatchAsOptionalChainingViaLodashGet()) {
+        this.patchAsOptionalChainingViaLodashGet();
+      } else if (this.shouldPatchAsOptionalChaining()) {
         this.patchAsOptionalChaining();
       } else if (this.shouldPatchAsConditional()) {
         this.patchAsConditional();
@@ -30,6 +32,10 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
     return this.options.useOptionalChaining === true && !this.expression.mayBeUnboundReference();
   }
 
+  shouldPatchAsOptionalChainingViaLodashGet(): boolean {
+    return this.options.useOptionalChainingViaLodashGet  ===true && !this.expression.mayBeUnboundReference();
+  }
+
   shouldPatchAsConditional(): boolean {
     return this.expression.isRepeatable() && !nodeContainsSoakOperation(this.expression.node);
   }
@@ -37,6 +43,54 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   patchAsOptionalChaining(): void {
     // The operator is the same, so nothing special to do.
     this.expression.patch();
+  }
+
+  patchAsOptionalChainingViaLodashGet(): void {
+    const throwError = (msg: string, badPlaceStr: string): void => {
+      if (badPlaceStr) {
+        msg += ` The problem place: \`${badPlaceStr}\`.`;
+      }
+      throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}`);
+    };
+
+    let badPlace;
+
+    const s = this.getOriginalSource();
+    console.info('---getOriginalSource', s);
+
+    // if (badPlace = s.match(/[^\w\.\?\(\)\[\];'"`]/)) {
+    //   throwError(`In --use-optional-chaining-via-lodash-get mode cannot automatically convert a string with this symbol: \`${badPlace[0]}\`.`);
+    // }
+
+    if (badPlace = s.match(/\?.+(\(|\))/)) {
+      throwError('with a function call (brackets) somewhere after `?` operator.', badPlace[0]);
+    }
+
+    if (badPlace = s.match(/\?.+(\[|\])/)) {
+      throwError('with a dynamic member access (square brackets) somewhere after `?` operator.', badPlace[0]);
+    }
+
+    if (badPlace = s.match(/\)\?/)) {
+      throwError('with a function call (brackets) immediately followed by `?` operator.', badPlace[0]);
+    }
+
+    // if (badPlace = s.match(/\]\?\./)) {
+    //   throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
+    // }
+
+    const sa = s.split('?.');
+    console.info('---sa', sa);
+    const objectToGetFrom = (sa.shift() || '').replace('@', 'this.');
+    const restOfChain = (sa.join('?.') || '').replace('@', 'this.');
+    console.info('---restOfChain', restOfChain);
+
+    if (badPlace = restOfChain.match(/\]\?\./)) {
+      throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
+    }
+
+    const result = `_.get(${objectToGetFrom}, '${restOfChain.replace('?', '')}')`;
+
+    this.overwrite(this.expression.outerStart, this.expression.outerStart + s.length, result);
   }
 
   patchAsConditional(): void {
