@@ -53,10 +53,14 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
       throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}`);
     };
 
+    const convertThis = (s: string|undefined) => {
+      return (s || '').replace('@', 'this.');
+    };
+
     let badPlace;
 
-    const s = this.getOriginalSource();
-    console.info('---getOriginalSource', s);
+    const soakContainer = findSoakContainer(this);
+    const s = soakContainer.getOriginalSource();
 
     // if (badPlace = s.match(/[^\w\.\?\(\)\[\];'"`]/)) {
     //   throwError(`In --use-optional-chaining-via-lodash-get mode cannot automatically convert a string with this symbol: \`${badPlace[0]}\`.`);
@@ -74,23 +78,18 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
       throwError('with a function call (brackets) immediately followed by `?` operator.', badPlace[0]);
     }
 
-    // if (badPlace = s.match(/\]\?\./)) {
-    //   throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
-    // }
-
     const sa = s.split('?.');
-    console.info('---sa', sa);
-    const objectToGetFrom = (sa.shift() || '').replace('@', 'this.');
-    const restOfChain = (sa.join('?.') || '').replace('@', 'this.');
-    console.info('---restOfChain', restOfChain);
+    const objectToGetFrom = convertThis(sa.shift());
+    const restOfChain = convertThis(sa.join('?.'));
 
     if (badPlace = restOfChain.match(/\]\?\./)) {
       throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
+
     }
 
     const result = `_.get(${objectToGetFrom}, '${restOfChain.replace('?', '')}')`;
 
-    this.overwrite(this.expression.outerStart, this.expression.outerStart + s.length, result);
+    soakContainer.overwrite(this.expression.outerStart, this.expression.outerStart + s.length, result);
   }
 
   patchAsConditional(): void {
