@@ -60,36 +60,41 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
     let badPlace;
 
     const soakContainer = findSoakContainer(this);
-    const s = soakContainer.getOriginalSource();
+    const originalSource = soakContainer.getOriginalSource();
 
-    // if (badPlace = s.match(/[^\w\.\?\(\)\[\];'"`]/)) {
+    // console.info('---- originalSource:', originalSource);
+
+    // if (badPlace = originalSource.match(/[^\w\.\?\(\)\[\];'"`]/)) {
     //   throwError(`In --use-optional-chaining-via-lodash-get mode cannot automatically convert a string with this symbol: \`${badPlace[0]}\`.`);
     // }
 
-    if (badPlace = s.match(/\?.+(\(|\))/)) {
+    if (badPlace = originalSource.match(/\?.+=/)) {
+      throwError('with an assignment somewhere after `?` operator.', badPlace[0]);
+    }
+
+    if (badPlace = originalSource.match(/\?.+(\(|\))/)) {
       throwError('with a function call (brackets) somewhere after `?` operator.', badPlace[0]);
     }
 
-    if (badPlace = s.match(/\?.+(\[|\])/)) {
+    if (badPlace = originalSource.match(/\?.+(\[|\])/)) {
       throwError('with a dynamic member access (square brackets) somewhere after `?` operator.', badPlace[0]);
     }
 
-    if (badPlace = s.match(/\)\?/)) {
+    if (badPlace = originalSource.match(/\)\?/)) {
       throwError('with a function call (brackets) immediately followed by `?` operator.', badPlace[0]);
     }
 
-    const sa = s.split('?.');
-    const objectToGetFrom = convertThis(sa.shift());
-    const restOfChain = convertThis(sa.join('?.'));
+    const splitSource = originalSource.split('?.');
+    const objectToGetFrom = convertThis(splitSource.shift());
+    const restOfChain = convertThis(splitSource.join('?.'));
 
     if (badPlace = restOfChain.match(/\]\?\./)) {
       throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
-
     }
 
     const result = `_.get(${objectToGetFrom}, '${restOfChain.replace('?', '')}')`;
 
-    soakContainer.overwrite(this.expression.outerStart, this.expression.outerStart + s.length, result);
+    soakContainer.overwrite(this.expression.outerStart, this.expression.outerStart + originalSource.length, result);
   }
 
   patchAsConditional(): void {
