@@ -133,5 +133,31 @@ In addition the wrapper for every bound method provides its unbound version acce
 _Basically it makes sense to have an unbound method version under `obj.method` and its bound version under `obj.method.bound`. This approach is better, because it would allow to call an unbound method in a natural way - `obj.method()`. But it would force you to correct all the places where bound methods were already used in your Coffeescript program._
 
 
+## Chains with existential operators (optional chaining)
 
+### --use-optional-chaining-via-lodash-get
 
+The original `decaffeinate` converts a call chain containing existential operators (access to an object property via`?`) to a procedure-style `__guard__` mess.
+
+`--use-optional-chaining-via-lodash-get` option changes this to a less weird output by use of `lodash.get` for a few simple cases.
+
+For example this chain:
+```
+a().b?.c.d?.e
+```
+
+by the original `decaffeinate` is converted to:
+```
+__guard__(__guard__(a().b, x1 => x1.c.d), x => x.e)
+
+function __guard__(value, transform) {
+  return (typeof value !== 'undefined' && value !== null) ? transform(value) : undefined;
+}
+```
+
+with the mentioned option:
+```
+_.get(a().b, 'c.d.e')
+```
+
+The described simplification is implemented only for trivial chains, you will get an error (and will be asked to correct coffescript manually) if a chain contains any operators except `?` or `.` somewhere after the first `?` appearance (like `a?.b()` or `a.b()?.c` or `a?.b[0]` or `a.b?[0]` or `a?.b = c` or `a?.b++` etc.).

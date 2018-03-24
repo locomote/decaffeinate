@@ -46,51 +46,29 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   }
 
   patchAsOptionalChainingViaLodashGet(): void {
+    const soakContainer = findSoakContainer(this);
+    const originalSource = soakContainer.getOriginalSource();
+
+    let badPlace;
+
     const throwError = (msg: string, badPlaceStr: string): void => {
       if (badPlaceStr) {
-        msg += ` The problem place: \`${badPlaceStr}\`.`;
+        msg += `\n\n\tThe problem place starts here:\t\`${badPlaceStr}\`\n`;
       }
       throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}`);
     };
+
+    if (badPlace = originalSource.match(/\?[?.\s\w]*([^?.\s\w].*$)/)) {
+      throwError('with some operator other than `.` or `?` in the chain AFTER the first `?` appearance.', badPlace[1]);
+    }
 
     const convertThis = (s: string|undefined) => {
       return (s || '').replace('@', 'this.');
     };
 
-    let badPlace;
-
-    const soakContainer = findSoakContainer(this);
-    const originalSource = soakContainer.getOriginalSource();
-
-    // console.info('---- originalSource:', originalSource);
-
-    // if (badPlace = originalSource.match(/[^\w\.\?\(\)\[\];'"`]/)) {
-    //   throwError(`In --use-optional-chaining-via-lodash-get mode cannot automatically convert a string with this symbol: \`${badPlace[0]}\`.`);
-    // }
-
-    if (badPlace = originalSource.match(/\?.+=/)) {
-      throwError('with an assignment somewhere after `?` operator.', badPlace[0]);
-    }
-
-    if (badPlace = originalSource.match(/\?.+(\(|\))/)) {
-      throwError('with a function call (brackets) somewhere after `?` operator.', badPlace[0]);
-    }
-
-    if (badPlace = originalSource.match(/\?.+(\[|\])/)) {
-      throwError('with a dynamic member access (square brackets) somewhere after `?` operator.', badPlace[0]);
-    }
-
-    if (badPlace = originalSource.match(/\)\?/)) {
-      throwError('with a function call (brackets) immediately followed by `?` operator.', badPlace[0]);
-    }
-
     const splitSource = originalSource.split('?.');
     const objectToGetFrom = convertThis(splitSource.shift());
     const restOfChain = convertThis(splitSource.join('?.'));
-
-    if (badPlace = restOfChain.match(/\]\?\./)) {
-      throwError('with a dynamic member access (square brackets) immediately followed by `?` operator.', badPlace[0]);
-    }
 
     const result = `_.get(${objectToGetFrom}, '${restOfChain.replace('?', '')}')`;
 
