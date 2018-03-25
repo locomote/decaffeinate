@@ -51,15 +51,20 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
 
     let badPlace;
 
-    const throwError = (msg: string, badPlaceStr: string): void => {
-      if (badPlaceStr) {
-        msg += `\n\n\tThe problem place starts here:\t\`${badPlaceStr}\`\n`;
+    const throwError = (msg: string, whereToSplit: string): void => {
+      if (whereToSplit) {
+        msg += `\n\n\tSplit the chain manually at this place:\t\`${whereToSplit}\``;
       }
-      throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}`);
+      throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}\n`);
     };
 
-    if (badPlace = originalSource.match(/\?[?.\s\w]*([^?.\s\w].*$)/)) {
-      throwError('with some operator other than `.` or `?` in the chain AFTER the first `?` appearance.', badPlace[1]);
+    if (badPlace = originalSource.match(/(\??)[?.\s\w]*([?][.\s\w]*([^?.\s\w].*$))/)) {
+      // badPlace[3] is actually what's problematic to convert,
+      // but we will not confuse a programmer with this information -
+      // instead we will give a suggestion to correct the chain near badPlace[2]
+      throwError('with some operator other than `.` or `?` AFTER another `?` appearance earlier in the chain.',
+        badPlace[2]
+      );
     }
 
     const convertThis = (s: string|undefined) => {
