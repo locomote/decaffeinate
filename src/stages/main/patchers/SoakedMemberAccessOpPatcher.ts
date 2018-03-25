@@ -9,6 +9,8 @@ const GUARD_HELPER =
   return (typeof value !== 'undefined' && value !== null) ? transform(value) : undefined;
 }`;
 
+const LODASH_REQUIRE_HELPER = `const _ = require('lodash');`;
+
 export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   _shouldSkipSoakPatch: boolean = false;
 
@@ -46,6 +48,8 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   }
 
   patchAsOptionalChainingViaLodashGet(): void {
+    this.registerHelper('__require_lodash__', LODASH_REQUIRE_HELPER);
+
     const soakContainer = findSoakContainer(this);
     const originalSource = soakContainer.getOriginalSource();
 
