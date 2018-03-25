@@ -5,6 +5,7 @@ import findSoakContainer from '../../../utils/findSoakContainer';
 import nodeContainsSoakOperation from '../../../utils/nodeContainsSoakOperation';
 import ternaryNeedsParens from '../../../utils/ternaryNeedsParens';
 import DynamicMemberAccessOpPatcher from './DynamicMemberAccessOpPatcher';
+import SoakedMemberAccessOpPatcher from './SoakedMemberAccessOpPatcher';
 
 const GUARD_HELPER =
   `function __guard__(value, transform) {
@@ -21,7 +22,9 @@ export default class SoakedDynamicMemberAccessOpPatcher extends DynamicMemberAcc
 
   patchAsExpression(): void {
     if (!this._shouldSkipSoakPatch) {
-      if (this.shouldPatchAsOptionalChaining()) {
+      if (this.shouldPatchAsOptionalChainingViaLodashGet()) {
+        SoakedMemberAccessOpPatcher.prototype.patchAsOptionalChainingViaLodashGet.apply(this);
+      } else if (this.shouldPatchAsOptionalChaining()) {
         this.patchAsOptionalChaining();
       } else if (this.shouldPatchAsConditional()) {
         this.patchAsConditional();
@@ -36,6 +39,10 @@ export default class SoakedDynamicMemberAccessOpPatcher extends DynamicMemberAcc
 
   shouldPatchAsOptionalChaining(): boolean {
     return this.options.useOptionalChaining === true && !this.expression.mayBeUnboundReference();
+  }
+
+  shouldPatchAsOptionalChainingViaLodashGet(): boolean {
+    return this.options.useOptionalChainingViaLodashGet  === true && !this.expression.mayBeUnboundReference();
   }
 
   shouldPatchAsConditional(): boolean {

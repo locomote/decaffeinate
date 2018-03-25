@@ -9,12 +9,16 @@ const GUARD_HELPER =
   return (typeof value !== 'undefined' && value !== null) ? transform(value) : undefined;
 }`;
 
+const LODASH_REQUIRE_HELPER = `const _ = require('lodash');`;
+
 export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   _shouldSkipSoakPatch: boolean = false;
 
   patchAsExpression(): void {
     if (!this._shouldSkipSoakPatch) {
-      if (this.shouldPatchAsOptionalChaining()) {
+      if (this.shouldPatchAsOptionalChainingViaLodashGet()) {
+        this.patchAsOptionalChainingViaLodashGet();
+      } else if (this.shouldPatchAsOptionalChaining()) {
         this.patchAsOptionalChaining();
       } else if (this.shouldPatchAsConditional()) {
         this.patchAsConditional();
@@ -30,6 +34,10 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
     return this.options.useOptionalChaining === true && !this.expression.mayBeUnboundReference();
   }
 
+  shouldPatchAsOptionalChainingViaLodashGet(): boolean {
+    return this.options.useOptionalChainingViaLodashGet  ===true && !this.expression.mayBeUnboundReference();
+  }
+
   shouldPatchAsConditional(): boolean {
     return this.expression.isRepeatable() && !nodeContainsSoakOperation(this.expression.node);
   }
@@ -37,6 +45,43 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   patchAsOptionalChaining(): void {
     // The operator is the same, so nothing special to do.
     this.expression.patch();
+  }
+
+  patchAsOptionalChainingViaLodashGet(): void {
+    this.registerHelper('__require_lodash__', LODASH_REQUIRE_HELPER, () => /require.*?("|')lodash("|')/ );
+
+    const soakContainer = findSoakContainer(this);
+    const originalSource = soakContainer.getOriginalSource();
+
+    let badPlace;
+
+    const throwError = (msg: string, whereToSplit: string): void => {
+      if (whereToSplit) {
+        msg += `\n\n\tSplit the chain manually at this place:\t\`${whereToSplit}\``;
+      }
+      throw this.error(`${this.constructor.name}: Cannot automatically convert an optional chain ${msg}\n`);
+    };
+
+    if (badPlace = originalSource.match(/(\??)[?.\s\w]*([?][.\s\w]*([^?.\s\w].*$))/)) {
+      // badPlace[3] is actually what's problematic to convert,
+      // but we will not confuse a programmer with this information -
+      // instead we will give a suggestion to correct the chain near badPlace[2]
+      throwError('with some operator other than `.` or `?` AFTER another `?` appearance earlier in the chain.',
+        badPlace[2]
+      );
+    }
+
+    const convertThis = (s: string|undefined) => {
+      return (s || '').replace('@', 'this.');
+    };
+
+    const splitSource = originalSource.split('?.');
+    const objectToGetFrom = convertThis(splitSource.shift());
+    const restOfChain = convertThis(splitSource.join('?.'));
+
+    const result = `_.get(${objectToGetFrom}, '${restOfChain.replace('?', '')}')`;
+
+    soakContainer.overwrite(this.expression.outerStart, this.expression.outerStart + originalSource.length, result);
   }
 
   patchAsConditional(): void {

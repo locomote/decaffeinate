@@ -2,9 +2,14 @@ import determineIndent from '../utils/determineIndent';
 import NodePatcher from './NodePatcher';
 import { PatcherContext } from './types';
 
+export interface HelperInfo {
+  code: string;
+  insertUnlessContentMatches: (() => RegExp) | undefined;
+}
+
 export default class ProgramPatcher extends NodePatcher {
   body: NodePatcher | null;
-  helpers: Map<string, string> = new Map();
+  helpers: Map<string, HelperInfo> = new Map();
   _indentString: string | null = null;
 
   constructor(patcherContext: PatcherContext, body: NodePatcher | null) {
@@ -21,21 +26,24 @@ export default class ProgramPatcher extends NodePatcher {
    *
    * FIXME: Pick a different name than what is in scope.
    */
-  registerHelper(name: string, code: string): string {
+  registerHelper(name: string, code: string, insertUnlessContentMatches?: () => RegExp): string {
     code = code.trim();
     if (this.helpers.has(name)) {
-      if (this.helpers.get(name) !== code) {
+      if (this.helpers.get(name)!.code !== code) {
         throw new Error(`BUG: cannot override helper '${name}'`);
       }
     } else {
-      this.helpers.set(name, code);
+      this.helpers.set(name, { code, insertUnlessContentMatches });
     }
     return name;
   }
 
   patchHelpers(): void {
     for (let helper of this.helpers.values()) {
-      this.editor.append(`\n${helper}`);
+      const discardRegexp = helper.insertUnlessContentMatches && helper.insertUnlessContentMatches();
+      if (!discardRegexp || !this.editor.toString().match(discardRegexp)) {
+        this.editor.prepend(`\n${helper.code}\n\n`);
+      }
     }
   }
 

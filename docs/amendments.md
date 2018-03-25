@@ -133,5 +133,62 @@ In addition the wrapper for every bound method provides its unbound version acce
 _Basically it makes sense to have an unbound method version under `obj.method` and its bound version under `obj.method.bound`. This approach is better, because it would allow to call an unbound method in a natural way - `obj.method()`. But it would force you to correct all the places where bound methods were already used in your Coffeescript program._
 
 
+## Chains with existential operators (optional chaining)
 
+### --use-optional-chaining-via-lodash-get
 
+The original `decaffeinate` converts a call chain containing existential operators (access to an object property via`?`) to a procedure-style `__guard__` mess.
+
+`--use-optional-chaining-via-lodash-get` option is designed to avoid this weird output by use of `lodash.get` in a relatively simple cases and by forcing manual coffescript corrections in complicated cases.
+
+For example this chain:
+```javascript
+a().b?.c.d?.e
+```
+
+by the original `decaffeinate` is converted to:
+```javascript
+__guard__(__guard__(a().b, x1 => x1.c.d), x => x.e)
+
+function __guard__(value, transform) {
+  return (typeof value !== 'undefined' && value !== null) ? transform(value) : undefined;
+}
+```
+
+with `--use-optional-chaining-via-lodash-get` option:
+```javascript
+_.get(a().b, 'c.d.e')
+```
+
+**Only relatively trivial chains can be converted automatically with `--use-optional-chaining-via-lodash-get` option.**
+
+Very likely you will get an error, if a chain contains some operators except `?` or `.` somewhere after the first (somethines - after the second) `?` appearance in the chain - like:
+
+`a?.b?.c()` or `a.b?()` or `a?.b?.c[0]` or `a.b?[0]` or `a?.b?.c = d` or `a?.b?.c++` etc. 
+
+You'll be provided with an explanation where the problem place starts and you will have to manually split the chain at least at this place in coffescript and ten repeat the `decaffeinate` call.
+
+For example, on attempt to convert this code:
+```javascript
+res = a?.b?.c()?.d
+```
+
+you will get the following error:
+```
+Cannot automatically convert an optional chain with some operator other than `.` or `?` AFTER another `?` appearance earlier in the chain.
+
+	Split the chain manually at this place:	`?.c().d`
+
+> 36 | res = a?.b?.c()?.d
+     |       ^^^^^^^^^^^^
+```
+
+and if you split the chain at the pointed place:
+```javascript
+b = a?.b
+res = b.c()?.d if b
+```
+
+then both the chains should be converted succesfully.
+
+_In a very complicated case it could be necessary to split a chain a few times  - just pass this process iteratively._

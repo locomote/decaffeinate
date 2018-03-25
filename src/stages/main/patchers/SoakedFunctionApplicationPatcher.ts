@@ -46,7 +46,9 @@ const GUARD_METHOD_HELPER =
 
 export default class SoakedFunctionApplicationPatcher extends FunctionApplicationPatcher {
   patchAsExpression(): void {
-    if (this.shouldPatchAsOptionalChaining()) {
+    if (this.shouldPatchAsOptionalChainingViaLodashGet()) {
+      SoakedMemberAccessOpPatcher.prototype.patchAsOptionalChainingViaLodashGet.apply(this);
+    } else if (this.shouldPatchAsOptionalChaining()) {
       this.patchAsOptionalChaining();
     } else if (this.shouldPatchAsConditional()) {
       this.patchAsConditional();
@@ -64,6 +66,10 @@ export default class SoakedFunctionApplicationPatcher extends FunctionApplicatio
 
   shouldPatchAsOptionalChaining(): boolean {
     return this.options.useOptionalChaining === true && !this.fn.mayBeUnboundReference();
+  }
+
+  shouldPatchAsOptionalChainingViaLodashGet(): boolean {
+    return this.options.useOptionalChainingViaLodashGet  === true && !this.fn.mayBeUnboundReference();
   }
 
   shouldPatchAsConditional(): boolean {

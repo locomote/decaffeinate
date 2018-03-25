@@ -167,12 +167,13 @@ decaffeinate could be improved, feel free to file an issue on the [issues] page.
 * `--disallow-invalid-constructors`: Give an error when constructors use `this`
   before `super` or omit the `super` call in a subclass.
 
-[Options amended to the original `decaffeinate`](./docs/amendments.md):
+[Options amended over the original `decaffeinate`](./docs/amendments.md):
 * `--bind-methods-after-super-call`: Bind instance methods after `super` constructor call to avoid
   the invalid constructor error (see `--disallow-invalid-constructors`)
 * `--compact-methods-binding`: Do instance methods binding via `this._bindMethods()` call in a constructor.
   If you use this options, you must ensure existence of `Object.prototype._bindMethods` in the application.
 * `--correct-static-generator-methods`: provides a correct syntax on converting a static generator method.
+* `--use-optional-chaining-via-lodash-get`: converts simple cases of optional chains to use of `lodash.get` instead of `__guard__`.
 
 For more usage details, see the output of `decaffeinate --help`.
 
