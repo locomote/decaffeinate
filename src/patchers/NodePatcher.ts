@@ -1260,8 +1260,8 @@ export default class NodePatcher {
   /**
    * Register a helper to be reused in several places.
    */
-  registerHelper(name: string, code: string): string {
-    return notNull(this.parent).registerHelper(name, code);
+  registerHelper(name: string, code: string, insertUnlessContentMatches?: () => RegExp): string {
+    return notNull(this.parent).registerHelper(name, code, insertUnlessContentMatches);
   }
 
   /**

@@ -48,7 +48,7 @@ export default class SoakedMemberAccessOpPatcher extends MemberAccessOpPatcher {
   }
 
   patchAsOptionalChainingViaLodashGet(): void {
-    this.registerHelper('__require_lodash__', LODASH_REQUIRE_HELPER);
+    this.registerHelper('__require_lodash__', LODASH_REQUIRE_HELPER, () => /require.*?("|')lodash("|')/ );
 
     const soakContainer = findSoakContainer(this);
     const originalSource = soakContainer.getOriginalSource();
