@@ -164,7 +164,7 @@ _.get(a().b, 'c.d.e')
 
 Very likely you will get an error, if a chain contains some operators except `?` or `.` somewhere after the first (somethines - after the second) `?` appearance in the chain - like:
 
-`a?.b?.c()` or `a.b?()` or `a?.b?.c[0]` or `a.b?[0]` or `a?.b?.c = d` or `a?.b?.c++` etc. 
+`a?.b?.c()` or `a.b?()` or `a?.b?.c[0]` or `a.b?[0]` or `a?.b?.c = d` or `a?.b?.c++` etc.
 
 You'll be provided with an explanation where the problem place starts and you will have to manually split the chain at least at this place in coffescript and ten repeat the `decaffeinate` call.
 
@@ -188,7 +188,9 @@ and if you split the chain at the pointed place:
 b = a?.b
 res = b.c()?.d if b
 ```
-
 then both the chains should be converted succesfully.
+
+Pay attention - [sometimes you should do a more specific test](https://developer.mozilla.org/en-US/docs/Glossary/Truthy) of `b` than just `if`.
+E.g. `if(b)` or `b &&` is a good replacemnt for `b?` when `b` is an Object, but not good when it's, for example, a String.
 
 _In a very complicated case it could be necessary to split a chain a few times  - just pass this process iteratively._
